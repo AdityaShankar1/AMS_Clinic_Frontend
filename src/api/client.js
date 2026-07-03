@@ -1,6 +1,8 @@
 import axios from 'axios'
 
-const api = axios.create({ baseURL: '/api' })
+const api = axios.create({ 
+  baseURL: import.meta.env.VITE_API_URL || '/api' 
+})
 
 // Attach the staff key header for Phase 1 auth
 // Phase 2a JWT: replace this with Authorization: Bearer <token>
