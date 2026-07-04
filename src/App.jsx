@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import Login from './components/Login'
 import Sidebar from './components/Sidebar'
 import AppointmentQueue from './components/AppointmentQueue'
 import DetailPanel from './components/DetailPanel'
@@ -6,7 +7,8 @@ import BookModal from './components/BookModal'
 import { listAppointments, updateStatus } from './api/appointments'
 
 export default function App() {
-  const [role, setRole] = useState('doctor')
+  const [staffKey, setStaffKey] = useState(() => localStorage.getItem('staff_key'))
+  const [role, setRole] = useState(() => localStorage.getItem('staff_role') || 'doctor')
   const [appointments, setAppointments] = useState([])
   const [selected, setSelected] = useState(null)
   const [showBook, setShowBook] = useState(false)
@@ -14,7 +16,21 @@ export default function App() {
   const [error, setError] = useState(null)
   const [lastRefresh, setLastRefresh] = useState(null)
 
+  function handleLogin(key, resolvedRole) {
+    setStaffKey(key)
+    setRole(resolvedRole)
+  }
+
+  function handleLogout() {
+    localStorage.removeItem('staff_key')
+    localStorage.removeItem('staff_role')
+    setStaffKey(null)
+    setAppointments([])
+    setSelected(null)
+  }
+
   const load = useCallback(async () => {
+    if (!staffKey) return
     try {
       const data = await listAppointments()
       setAppointments(data)
@@ -25,15 +41,20 @@ export default function App() {
         if (refreshed) setSelected(refreshed)
       }
     } catch (e) {
-      setError('Failed to load appointments. Is the server running?')
+      if (e.response?.status === 401 || e.response?.status === 403) {
+        handleLogout()
+      } else {
+        setError('Failed to load appointments. Is the server running?')
+      }
     } finally { setLoading(false) }
-  }, [selected])
+  }, [staffKey, selected])
 
   useEffect(() => {
+    if (!staffKey) { setLoading(false); return }
     load()
-    const interval = setInterval(load, 30000) // refresh every 30s
+    const interval = setInterval(load, 30000)
     return () => clearInterval(interval)
-  }, [])
+  }, [staffKey])
 
   async function handleConfirm(id) {
     try {
@@ -63,9 +84,10 @@ export default function App() {
     setSelected(newAppt)
   }
 
+  if (!staffKey) return <Login onLogin={handleLogin} />
+
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {/* Header */}
       <header style={{
         height: 44, borderBottom: '1px solid var(--border)',
         background: 'var(--surface)', display: 'flex',
@@ -74,9 +96,7 @@ export default function App() {
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
           <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '-0.01em',
-            textTransform: 'uppercase' }}>
-            Clinic AMS
-          </span>
+            textTransform: 'uppercase' }}>Clinic AMS</span>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9,
             color: 'var(--primary)', opacity: 0.6 }}>v2.0</span>
         </div>
@@ -97,21 +117,20 @@ export default function App() {
               ML PRIORITY ACTIVE
             </span>
           </div>
-          <button onClick={() => setShowBook(true)}
-            style={{
-              padding: '5px 12px', background: 'var(--primary)',
-              color: 'var(--primary-foreground)', border: 'none',
-              borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 600
-            }}>
-            + Book
-          </button>
+          <button onClick={() => setShowBook(true)} style={{
+            padding: '5px 12px', background: 'var(--primary)',
+            color: 'var(--primary-foreground)', border: 'none',
+            borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 600
+          }}>+ Book</button>
+          <button onClick={handleLogout} style={{
+            padding: '5px 10px', background: 'transparent',
+            color: 'var(--muted-foreground)', border: '1px solid var(--border)',
+            borderRadius: 4, cursor: 'pointer', fontSize: 10
+          }}>Sign out</button>
         </div>
       </header>
-
-      {/* Body */}
       <main style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         <Sidebar appointments={appointments} role={role} onRoleChange={setRole} />
-
         <section style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {error && (
             <div style={{ padding: '8px 14px', background: 'rgba(220,38,38,0.08)',
@@ -135,13 +154,9 @@ export default function App() {
             />
           )}
         </section>
-
         <DetailPanel appointment={selected} role={role} onUpdate={handleUpdate} />
       </main>
-
-      {showBook && (
-        <BookModal onClose={() => setShowBook(false)} onBooked={handleBooked} />
-      )}
+      {showBook && <BookModal onClose={() => setShowBook(false)} onBooked={handleBooked} />}
     </div>
   )
 }
