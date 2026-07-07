@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar'
 import AppointmentQueue from './components/AppointmentQueue'
 import DetailPanel from './components/DetailPanel'
 import BookModal from './components/BookModal'
+import AnalyticsStrip from './components/AnalyticsStrip'
 import { listAppointments, updateStatus } from './api/appointments'
 
 export default function App() {
@@ -153,6 +154,7 @@ export default function App() {
               role={role}
             />
           )}
+          <AnalyticsStrip />
         </section>
         <DetailPanel appointment={selected} role={role} onUpdate={handleUpdate} />
       </main>
