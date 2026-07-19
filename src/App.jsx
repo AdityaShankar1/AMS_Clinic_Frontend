@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar'
 import AppointmentQueue from './components/AppointmentQueue'
 import DetailPanel from './components/DetailPanel'
 import BookModal from './components/BookModal'
+import PatientBooking from './components/PatientBooking'
 import AnalyticsStrip from './components/AnalyticsStrip'
 import { listAppointments, updateStatus } from './api/appointments'
 
@@ -13,6 +14,7 @@ export default function App() {
   const [appointments, setAppointments] = useState([])
   const [selected, setSelected] = useState(null)
   const [showBook, setShowBook] = useState(false)
+  const [showPatientBook, setShowPatientBook] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [lastRefresh, setLastRefresh] = useState(null)
@@ -123,6 +125,11 @@ export default function App() {
             color: 'var(--primary-foreground)', border: 'none',
             borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 600
           }}>+ Book</button>
+          <button onClick={() => setShowPatientBook(true)} style={{
+            padding: '5px 12px', background: 'transparent',
+            color: 'var(--primary)', border: '1px solid var(--primary)',
+            borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 600
+          }}>Patient Portal</button>
           <button onClick={handleLogout} style={{
             padding: '5px 10px', background: 'transparent',
             color: 'var(--muted-foreground)', border: '1px solid var(--border)',
@@ -159,6 +166,13 @@ export default function App() {
         <DetailPanel appointment={selected} role={role} onUpdate={handleUpdate} />
       </main>
       {showBook && <BookModal onClose={() => setShowBook(false)} onBooked={handleBooked} />}
+      {showPatientBook && (
+        <PatientBooking
+          doctors={appointments.length > 0 ? [...new Map(appointments.map(a => [a.doctor_id, {doctor_id: a.doctor_id, full_name: `Dr. #${a.doctor_id}`, specialty: ''}])).values()] : []}
+          onBooked={handleBooked}
+          onClose={() => setShowPatientBook(false)}
+        />
+      )}
     </div>
   )
 }
